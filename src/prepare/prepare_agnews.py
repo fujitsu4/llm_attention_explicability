@@ -1,5 +1,5 @@
 """
-prepare_dataset_agnews.py
+prepare_agnews.py
 Author: Zakaria JOUILIL
 
 Description:
@@ -16,11 +16,11 @@ Inputs:
     - None (dataset is downloaded automatically from HuggingFace)
 
 Outputs:
-    - data/cleaned/agnews_filtered.csv
+    - data/agnews_filtered.csv
     - logs/rejected_agnews.txt   # rejected sentences
 
 Usage:
-    python -m src.prepare.prepare_dataset_agnews --output data/cleaned/agnews_filtered.csv --target 10000
+    python -m src.prepare.prepare_agnews --output data/agnews_filtered.csv --target 10000
 """
 from datasets import load_dataset
 import pandas as pd
@@ -33,7 +33,7 @@ import argparse
 # ----------------------------------------------------------
 
 parser = argparse.ArgumentParser(description="Prepare agnews dataset")
-parser.add_argument("--output", type=str, default="data/cleaned/agnews_filtered.csv",
+parser.add_argument("--output", type=str, default="data/agnews_filtered.csv",
                         help="Output CSV path")
 parser.add_argument("--target", type=int, default=10000,
                         help="Number of sentences to keep")
@@ -169,7 +169,7 @@ for s, label in unique_sentences:
     else:
         rejected_sentences.append("[ROOT] " + s)
 
-rejected_path = "/content/sample_data/logs"
+rejected_path = "logs/rejected_agnews.txt"
 with open(rejected_path, "w", encoding="utf-8") as f:
     for r in rejected_sentences:
         f.write(f"{r}\n")
@@ -185,10 +185,9 @@ df = pd.DataFrame([
     {
         "sentence_id": i,
         "sentence": s,
-        "label": label,
-        "dataset": "agnews"
+        "label": label
     }
-    for i, s in enumerate(final_sentences)
+    for i, (s, label) in enumerate(final_sentences)
 ])
 
 df.to_csv(OUTPUT, sep=";", index=False)
