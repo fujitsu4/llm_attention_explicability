@@ -75,7 +75,7 @@ def clean_sentence(text: str) -> str:
 # ----------------------------------------------------------
 
 label_names = ds.features["label"].names
-LABEL_MAP = {i: name.lower().replace("/", "") for i, name in enumerate(label_names)}
+LABEL_CLASS_MAP = {i: name for i, name in enumerate(label_names)}
 
 for row in ds:
     text = row["text"]
@@ -84,7 +84,7 @@ for row in ds:
     if text:
         text = clean_sentence(text)
         if len(text.split()) >= MIN_WORDS:
-            sentences.append((text, LABEL_MAP[label_id]))
+            sentences.append((text, label_id, LABEL_CLASS_MAP[label_id]))
 
 print("[INFO] Collected raw sentences : ", len(sentences))
 
@@ -92,11 +92,11 @@ print("[INFO] Collected raw sentences : ", len(sentences))
 # 3) Remove duplicates
 # ----------------------------------------------------------
 seen = {}
-for text, label in sentences:
+for text, label, label_class in sentences:
     if text not in seen:
-        seen[text] = label
+        seen[text] = (label, label_class)
 
-unique_sentences = [(text, label) for text, label in seen.items()]
+unique_sentences = [(text, label, label_class) for text, (label, label_class) in seen.items()]
 len_unique = len(unique_sentences)
 print("[INFO] After deduplication : ", len_unique)
 
@@ -145,7 +145,7 @@ def contains_non_ascii(sentence: str) -> bool:
 final_sentences = []
 rejected_sentences = []
 
-for s, label in unique_sentences:
+for s, label, label_class in unique_sentences:
     if contains_semicolon(s):
         rejected_sentences.append("[SEMICOLON] " + s)
         continue
@@ -163,7 +163,7 @@ for s, label in unique_sentences:
         continue
 
     if has_unique_root(s):
-        final_sentences.append((s, label))
+        final_sentences.append((s, label, label_class))
         if len(final_sentences) >= TARGET:
             break
     else:
@@ -185,9 +185,10 @@ df = pd.DataFrame([
     {
         "sentence_id": i,
         "sentence": s,
-        "label": label
+        "label": label,
+        "label_class": label_class
     }
-    for i, (s, label) in enumerate(final_sentences)
+    for i, (s, label, label_class) in enumerate(final_sentences)
 ])
 
 df.to_csv(OUTPUT, sep=";", index=False)
