@@ -44,7 +44,7 @@ OUTPUT = args.output
 
 MIN_WORDS = 8
 print("[INFO] Loading AG News dataset...")
-ds = load_dataset("ag_news", split="train")
+ds = load_dataset("ag_news", split="test")
 ds = ds.shuffle(seed=42).select(range(25000))
 print("[INFO] Subset length:", len(ds))
 
