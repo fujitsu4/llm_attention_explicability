@@ -1,26 +1,25 @@
 """
-prepare_agnews.py
+prepare_dbpedia.py
 Author: Zakaria JOUILIL
 
 Description:
-    Prepare the AG News dataset by:
+    Prepare the DBpedia Ontology dataset by:
         - Cleaning text (whitespace + unicode normalization)
         - Removing sentences < 8 words
         - Removing sentences with semicolons (incompatible with SpaCy tokenization logic)
         - Keeping only sentences with exactly one syntactic ROOT
         - Removing sentences containing POS = 'X'
         - Removing sentences with incoherent punctuation (POS = 'PUNCT' but not a real punctuation)
-        - Selecting the first 2500 valid sentences
-
+        - Removing sentences with non-ASCII characters
 Inputs:
     - None (dataset is downloaded automatically from HuggingFace)
 
 Outputs:
-    - data/agnews_filtered.csv
-    - logs/rejected_agnews.txt   # rejected sentences
+    - data/dbpedia_filtered.csv
+    - logs/rejected_dbpedia.txt   # rejected sentences
 
 Usage:
-    python -m src.prepare.prepare_agnews --output data/agnews_filtered.csv --target 10000
+    python -m src.prepare.prepare_dbpedia --output data/dbpedia_filtered.csv --target 10000
 """
 from datasets import load_dataset
 import pandas as pd
@@ -32,8 +31,8 @@ import argparse
 # CLI Parser
 # ----------------------------------------------------------
 
-parser = argparse.ArgumentParser(description="Prepare agnews dataset")
-parser.add_argument("--output", type=str, default="data/agnews_filtered.csv",
+parser = argparse.ArgumentParser(description="Prepare DBpedia dataset")
+parser.add_argument("--output", type=str, default="data/dbpedia_filtered.csv",
                         help="Output CSV path")
 parser.add_argument("--target", type=int, default=10000,
                         help="Number of sentences to keep")
@@ -43,10 +42,8 @@ TARGET = args.target
 OUTPUT = args.output
 
 MIN_WORDS = 8
-print("[INFO] Loading AG News dataset...")
-ds = load_dataset("ag_news", split="test")
-ds = ds.shuffle(seed=42).select(range(25000))
-print("[INFO] Subset length:", len(ds))
+print("[INFO] Loading DBpedia Ontology dataset...")
+ds = load_dataset("dbpedia_14", split="test")
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -78,7 +75,7 @@ label_names = ds.features["label"].names
 LABEL_CLASS_MAP = {i: name for i, name in enumerate(label_names)}
 
 for row in ds:
-    text = row["text"]
+    text = row["content"]
     label_id = row["label"]
 
     if text:
@@ -100,14 +97,8 @@ unique_sentences = [(text, label, label_class) for text, (label, label_class) in
 len_unique = len(unique_sentences)
 print("[INFO] After deduplication : ", len_unique)
 
-
 # ----------------------------------------------------------
-# 4) Select more than target
-# ----------------------------------------------------------
-selected = unique_sentences[: min(len_unique, 6000) ]
-
-# ----------------------------------------------------------
-# 5) Helper functions
+# 4) Helper functions
 # ----------------------------------------------------------
 def has_unique_root(sentence: str) -> bool:
     doc = nlp(sentence)
@@ -169,7 +160,7 @@ for s, label, label_class in unique_sentences:
     else:
         rejected_sentences.append("[ROOT] " + s)
 
-rejected_path = "logs/rejected_agnews.txt"
+rejected_path = "logs/rejected_dbpedia.txt"
 with open(rejected_path, "w", encoding="utf-8") as f:
     for r in rejected_sentences:
         f.write(f"{r}\n")
