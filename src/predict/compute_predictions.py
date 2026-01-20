@@ -43,7 +43,7 @@ Outputs:
     - data/bert_predictions.csv
 
 Usage:
-    python -m src.predict.compute_bert_predictions_agnews \
+    python -m src.predict.compute_predictions \
         --input data/dbpedia_filtered.csv \
         --output predict/dbpedia_predictions.csv
 """
