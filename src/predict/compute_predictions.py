@@ -45,7 +45,7 @@ Outputs:
 Usage:
     python -m src.predict.compute_predictions \
         --input data/dbpedia_filtered.csv \
-        --output predict/dbpedia_predictions.csv
+        --output outputs/predict/dbpedia_predictions.csv
 """
 
 import argparse
@@ -83,13 +83,14 @@ print(f"[INFO] Loaded {len(sentences)} sentences")
 # Load model
 # ----------------------------------------------------------
 
-MODEL_NAME = "textattack/bert-base-uncased-dbpedia"
+TOKENIZER_NAME = "bert-base-uncased"
+MODEL_NAME = "florisdh/bert-base-dbpedia14"
 
 device = "cuda"
 if not torch.cuda.is_available():
     device = "cpu"
 
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_NAME)
 model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
 model.to(device)
 model.eval()
@@ -98,6 +99,7 @@ num_labels = model.config.num_labels
 assert num_labels == len(set(y_true)), \
     "Mismatch between model num_labels and dataset labels"
 print("DEBUG labels")
+print(model.config.num_labels)
 print(model.config.id2label)
 
 # ----------------------------------------------------------
