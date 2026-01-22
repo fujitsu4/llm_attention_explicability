@@ -40,12 +40,13 @@ Inputs:
     - data/dbpedia_filtered.csv
 
 Outputs:
-    - data/bert_predictions.csv
+    - data/dbpedia_full_predictions.csv (full predictions)
+    - data/dbpedia_predictions.csv (10k true predictions used for spacy (technical limitation))
 
 Usage:
     python -m src.predict.compute_predictions \
         --input data/dbpedia_filtered.csv \
-        --output outputs/predict/dbpedia_predictions.csv
+        --output_dir outputs/predict
 """
 
 import argparse
@@ -64,7 +65,7 @@ from tqdm import tqdm
 
 parser = argparse.ArgumentParser(description="Compute BERT probabilistic diagnostics on DBpedia")
 parser.add_argument("--input", type=str, required=True)
-parser.add_argument("--output", type=str, required=True)
+parser.add_argument("--output_dir", type=str, required=True)
 parser.add_argument("--batch_size", type=int, default=16)
 args = parser.parse_args()
 
@@ -172,7 +173,47 @@ df_out = pd.DataFrame({
     "entropy": entropy
 })
 
-df_out.to_csv(args.output, sep=";", index=False)
+# ----------------------------------------------------------
+# Save Full Predictions
+# ----------------------------------------------------------
+
+import os
+os.makedirs(args.output_dir, exist_ok=True)
+full_output_path = os.path.join(args.output_dir, "dbpedia_full_predictions.csv")
+df_out.to_csv(full_output_path, sep=";", index=False)
 
 print(f"[INFO] Accuracy = {df_out['correct'].mean():.4f}")
-print(f"[INFO] Saved predictions to {args.output}")
+print(f"[INFO] Saved full predictions to {full_output_path}")
+
+# ----------------------------------------------------------
+# Save analysis predictions (correct = 1, capped)
+# ----------------------------------------------------------
+
+df_analysis = df_out[df_out["correct"] == 1].copy()
+
+# Optional hard cap
+MAX_ANALYSIS_SAMPLES = 10000
+RANDOM_SEED = 42
+
+classes = sorted(df_analysis["y_true"].unique())
+n_classes = len(classes)
+
+samples_per_class = (MAX_ANALYSIS_SAMPLES // n_classes)
+
+df_analysis = (
+    df_analysis
+    .groupby("y_true", group_keys=False)
+    .apply(
+        lambda x: x.sample(
+            n=min(len(x), samples_per_class),
+            random_state=RANDOM_SEED
+        )
+    )
+    .reset_index(drop=True)
+)
+
+analysis_output_path = os.path.join(args.output_dir, "dbpedia_predictions.csv")
+df_analysis.to_csv(analysis_output_path, sep=";", index=False)
+
+print(f"[INFO] Saved analysis predictions to {analysis_output_path}")
+print(f"[INFO] Analysis subset size = {len(df_analysis)}")
