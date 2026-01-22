@@ -2,7 +2,7 @@
 prepare_dbpedia.py
 Author: Zakaria JOUILIL
 
-Select only sentences with multiple root (> 3 roots)
+Select only sentences with multiple syntactic roots (spacy) (> 3 roots)
 Usage:
     python -m src.prepare.prepare_dbpedia --output data/dbpedia_filtered.csv
 """
