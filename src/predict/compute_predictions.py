@@ -212,6 +212,21 @@ df_analysis = (
     .reset_index(drop=True)
 )
 
+#Add an udpate due to BERT technical limitations (only deals with sentences of 512 tokens maximum)
+from transformers import AutoTokenizer
+tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+
+def is_short_enough(sentence):
+    return len(tokenizer(sentence)["input_ids"]) <= 512
+
+print("[INFO] Filtering sentences exceeding 512 BERT tokens...")
+
+df_analysis = df_analysis[
+    df_analysis["sentence"].apply(is_short_enough)
+].reset_index(drop=True)
+
+print(f"[INFO] Retained {len(df_analysis)} sentences after BERT length filtering")
+
 analysis_output_path = os.path.join(args.output_dir, "dbpedia_predictions.csv")
 df_analysis.to_csv(analysis_output_path, sep=";", index=False)
 
