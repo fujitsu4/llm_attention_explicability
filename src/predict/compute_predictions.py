@@ -108,10 +108,21 @@ print(model.config.id2label)
 # ----------------------------------------------------------
 
 all_probs = []
+all_token_lengths = []
 
 with torch.no_grad():
     for i in tqdm(range(0, len(sentences), args.batch_size), desc="Inference"):
         batch = sentences[i:i + args.batch_size]
+
+        enc_len = tokenizer(
+            batch,
+            add_special_tokens=True,
+            truncation=False,
+            return_attention_mask=False,
+            return_token_type_ids=False
+        )
+        batch_lengths = [len(ids) for ids in enc_len["input_ids"]]
+        all_token_lengths.extend(batch_lengths)
 
         enc = tokenizer(
             batch,
@@ -170,7 +181,8 @@ df_out = pd.DataFrame({
     "confidence": confidence,
     "margin": margin,
     "gap": gap,
-    "entropy": entropy
+    "entropy": entropy,
+    "bert_token_length": all_token_lengths
 })
 
 # ----------------------------------------------------------
@@ -213,16 +225,11 @@ df_analysis = (
 )
 
 #Add an udpate due to BERT technical limitations (only deals with sentences of 512 tokens maximum)
-from transformers import AutoTokenizer
-tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-
-def is_short_enough(sentence):
-    return len(tokenizer(sentence)["input_ids"]) <= 512
 
 print("[INFO] Filtering sentences exceeding 512 BERT tokens...")
 
 df_analysis = df_analysis[
-    df_analysis["sentence"].apply(is_short_enough)
+    df_analysis["bert_token_length"] <= 512
 ].reset_index(drop=True)
 
 print(f"[INFO] Retained {len(df_analysis)} sentences after BERT length filtering")
